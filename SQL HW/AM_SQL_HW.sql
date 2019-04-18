@@ -112,7 +112,7 @@ order by customer.last_name;
 select film.title, language.name from film 
 inner join language
 on film.language_id = language.language_id
-WHERE film.title like "K%" OR "Q%" AND 
+WHERE film.title like "K%" OR film.title like "Q%" AND 
 language.language_id in
 (select language_id from language
 where name = 'ENGLISH');
@@ -153,36 +153,35 @@ group by customer.first_name;
 
 -- 7d. Sales have been lagging among young families, and you wish to target all family movies for a promotion. Identify all movies categorized as _family_ films.
 
-select title, film_id, name from film, category
-where film_id in
-	(select film_id  from film_category
-        where category_id in
-		(select category_id from category where name = "Family"
-        )
+select title from film
+left join film_category
+on film.film_id = film_category.film_id
+where film.film_id in
+(select film_id from film_Category
+ where film_category.category_id in
+	(select category_id  from category
+	 where name = "Family"
 	)
+)
 group by title;
 
 -- 7e. Display the most frequently rented movies in descending order.
--- rental + inventory + film
-select title, count(rental.inventory_id) from film, rental 
-where inventory_id in
-	(select inventory_id from inventory
-     where film_id in
-		(select film_id from film)
-    )
-group by film.title
-order by count(rental.inventory_id) desc limit 5;
+-- join rental on inventory and film
+
+select inventory_id, count(inventory_id), film.film_id, film.title from rental 
+	join rental on rental.inventory_id = inventory.inventory_id
+    join inventory on inventory.film_id = film.film_id
+group by inventory_id;
 
 -- 7f. Write a query to display how much business, in dollars, each store brought in.
--- join store on inventory on rental on payment
+-- join inventory on rental and payment
 
-select store_id, sum(payment.amount) as 'Sales ($)' from store
-where store_id in 
-	(select store_id from customer
-     where customer_id in
-		(select customer_id, sum(amount) from payment)
-	)
-group by store_id;
+select store_id, sum(payment.amount) as 'Sales ($)' 
+from inventory
+	join rental on inventory.inventory_id = rental.inventory_id
+    join payment on rental.customer_id = payment.customer_id
+group by inventory.store_id;
+
 
 -- 7g. Write a query to display for each store its store ID, city, and country.
 select store.store_id, store.address_id, country.country from store
